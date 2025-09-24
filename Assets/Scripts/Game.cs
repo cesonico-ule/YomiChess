@@ -3,10 +3,14 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Dynamic;
 using UnityEngine;
+// using UnityEngine.Debug.log;
+using Unity.Netcode;
+// using System.Diagnostics; Collides with debug.log
 
 public class Game : MonoBehaviour {
 
-    public GameObject chesspiece;
+	public GameObject chesspiece;
+	public static Game Instance;
 
     // Positions and team for each piece
     private GameObject[,] positions = new GameObject[8, 8];
@@ -17,17 +21,35 @@ public class Game : MonoBehaviour {
 
     private bool gameOver = false;
 
+	private void Awake() { // Make sure there is only one instance of the game controller
+		if(Instance!=null && Instance != this) {
+			Destroy(gameObject);
+		} else {
+			Instance = this;
+		}
+	}
+
+
 
 	// Start is called before the first frame update
 	void Start() {
+		NetworkManager.Singleton.OnClientConnectedCallback += (clientId) => {
+			Debug.Log("Client with id " + clientId + " connected to the server");
+			if (NetworkManager.Singleton.IsHost && NetworkManager.Singleton.ConnectedClients.Count == 2) {
+				Debug.Log("Game is ready to begin");
+				SetUpBoard();
+			}
+		};
+	}
 
-        playerWhite = new GameObject[] {
-            Create("white_king", 4, 0), Create("white_queen", 3, 0),
-            Create("white_rook", 0, 0), Create("white_rook", 7, 0),
-            Create("white_bishop", 2, 0), Create("white_bishop", 5, 0),
+	public void SetUpBoard() {
+		playerWhite = new GameObject[] {
+			Create("white_king", 4, 0), Create("white_queen", 3, 0),
+			Create("white_rook", 0, 0), Create("white_rook", 7, 0),
+			Create("white_bishop", 2, 0), Create("white_bishop", 5, 0),
 			Create("white_knight", 1, 0), Create("white_knight", 6, 0),
 			Create("white_pawn", 0, 1), Create("white_pawn", 1, 1), Create("white_pawn", 2, 1), Create("white_pawn", 3, 1),
-            Create("white_pawn", 4, 1), Create("white_pawn", 5, 1), Create("white_pawn", 6, 1), Create("white_pawn", 7, 1)
+			Create("white_pawn", 4, 1), Create("white_pawn", 5, 1), Create("white_pawn", 6, 1), Create("white_pawn", 7, 1)
 		};
 
 		playerBlack = new GameObject[] {
@@ -47,9 +69,7 @@ public class Game : MonoBehaviour {
 
 		// Setup chess pieces
 		// Instantiate(chesspiece, new Vector3(0, 0, -1), Quaternion.identity);
-
-
-    }
+	}
 
 
 	public GameObject Create(string name, int x, int y) {
@@ -59,6 +79,7 @@ public class Game : MonoBehaviour {
 		cm.SetXBoard(x);
 		cm.SetYBoard(y);
 		cm.Activate();
+		obj.GetComponent<NetworkObject>().Spawn();
 		return obj;
 	}
 
@@ -95,4 +116,12 @@ public class Game : MonoBehaviour {
 		}
 	}
 
+	// ---	NETWORK ---
+	public void Starthost() {
+		NetworkManager.Singleton.StartHost();
+	}
+
+	public void StartClient() {
+		NetworkManager.Singleton.StartClient();
+	}
 }

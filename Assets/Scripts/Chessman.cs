@@ -23,6 +23,7 @@ public class Chessman : MonoBehaviour
 
 		controller = GameObject.FindGameObjectWithTag("GameController");
 
+		
 		// Take the instantiated location and adjust the transform
 		SetCoordinates();
 
