@@ -48,7 +48,7 @@ public class Game : NetworkBehaviour {
 
 	public void SetUpBoard() {
 
-		// if (!IsServer) return; // Only the server/host sets NetworkVariables!
+		// if (!IsServer) return; // Bugged for some reason
 
 
 		playerWhite = new GameObject[] {
