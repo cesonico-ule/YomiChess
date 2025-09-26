@@ -1,13 +1,15 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Dynamic;
-using UnityEngine;
+using Unity.Collections;
 // using UnityEngine.Debug.log;
 using Unity.Netcode;
+using UnityEngine;
 // using System.Diagnostics; Collides with debug.log
 
-public class Game : MonoBehaviour {
+public class Game : NetworkBehaviour {
 
 	public GameObject chesspiece;
 	public static Game Instance;
@@ -30,19 +32,25 @@ public class Game : MonoBehaviour {
 	}
 
 
-
 	// Start is called before the first frame update
 	void Start() {
 		NetworkManager.Singleton.OnClientConnectedCallback += (clientId) => {
 			Debug.Log("Client with id " + clientId + " connected to the server");
 			if (NetworkManager.Singleton.IsHost && NetworkManager.Singleton.ConnectedClients.Count == 2) {
 				Debug.Log("Game is ready to begin");
+				currentPlayer = "white";
 				SetUpBoard();
+			} else {
+				currentPlayer = "black";
 			}
 		};
 	}
 
 	public void SetUpBoard() {
+
+		// if (!IsServer) return; // Only the server/host sets NetworkVariables!
+
+
 		playerWhite = new GameObject[] {
 			Create("white_king", 4, 0), Create("white_queen", 3, 0),
 			Create("white_rook", 0, 0), Create("white_rook", 7, 0),
@@ -74,12 +82,17 @@ public class Game : MonoBehaviour {
 
 	public GameObject Create(string name, int x, int y) {
 		GameObject obj = Instantiate(chesspiece, new Vector3(0, 0, -1), Quaternion.identity);
+		NetworkObject netObj = obj.GetComponent<NetworkObject>();
+
+
 		Chessman cm = obj.GetComponent<Chessman>();
-		cm.name = name;
+		cm.pieceName.Value = name;
 		cm.SetXBoard(x);
 		cm.SetYBoard(y);
-		cm.Activate();
-		obj.GetComponent<NetworkObject>().Spawn();
+		cm.Activate(); // Sugested removal
+
+		netObj.Spawn();
+		// obj.GetComponent<NetworkObject>().Spawn(); // Previous attempt
 		return obj;
 	}
 

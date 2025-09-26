@@ -1,6 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.Collections;
+using Unity.Netcode;
+
+
 
 public class MovePlate : MonoBehaviour
 {
@@ -35,7 +39,7 @@ public class MovePlate : MonoBehaviour
 
 		reference.GetComponent<Chessman>().SetXBoard(matrixX);
 		reference.GetComponent<Chessman>().SetYBoard(matrixY);
-		reference.GetComponent<Chessman>().SetCoordinates();
+		reference.GetComponent<Chessman>().UpdatePosition();
 
 		controller.GetComponent<Game>().SetPosition(reference);
 

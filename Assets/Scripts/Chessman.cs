@@ -2,16 +2,17 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using UnityEngine;
+using Unity.Collections;
+using Unity.Netcode;
 
-public class Chessman : MonoBehaviour
-{
+public class Chessman : NetworkBehaviour {
 	// References
 	public GameObject controller;
 	public GameObject movePlate;
 
 	// Positions
-	private int xBoard = -1;
-	private int yBoard = -1;
+	private NetworkVariable<int> xBoard = new NetworkVariable<int>(-1);
+	private NetworkVariable<int> yBoard = new NetworkVariable<int>(-1);
 
 	//Variable to keep track of black or white player
 	private string player;
@@ -19,44 +20,26 @@ public class Chessman : MonoBehaviour
 	//References for all the sprites that the chesspiece can be
 	public Sprite black_king, black_queen, black_rook, black_bishop, black_knight, black_pawn, white_king, white_queen, white_rook, white_bishop, white_knight, white_pawn;
 
+	// I replaced the name variable to make it Network compatible
+	public NetworkVariable<FixedString32Bytes> pieceName = new NetworkVariable<FixedString32Bytes>("white_king");
+
+
 	public void Activate() {
 
-		controller = GameObject.FindGameObjectWithTag("GameController");
+		if (!IsServer) return; // Only the server/host sets NetworkVariables!
 
+		controller = GameObject.FindGameObjectWithTag("GameController");
 		
 		// Take the instantiated location and adjust the transform
-		SetCoordinates();
+		UpdatePosition();
 
-		switch (this.name) {
-			case "black_king": this.GetComponent<SpriteRenderer>().sprite = black_king; player = "black";break;
-			case "black_queen": this.GetComponent<SpriteRenderer>().sprite = black_queen; player = "black"; break;
-			case "black_rook": this.GetComponent<SpriteRenderer>().sprite = black_rook; player = "black"; break;
-			case "black_bishop": this.GetComponent<SpriteRenderer>().sprite = black_bishop; player = "black"; break;
-			case "black_knight": this.GetComponent<SpriteRenderer>().sprite = black_knight; player = "black"; break;
-			case "black_pawn": this.GetComponent<SpriteRenderer>().sprite = black_pawn; player = "black"; break;
-
-			case "white_king": this.GetComponent<SpriteRenderer>().sprite = white_king; player = "white"; break;
-			case "white_queen": this.GetComponent<SpriteRenderer>().sprite = white_queen; player = "white"; break;
-			case "white_rook": this.GetComponent<SpriteRenderer>().sprite = white_rook; player = "white"; break;
-			case "white_bishop": this.GetComponent<SpriteRenderer>().sprite = white_bishop; player = "white"; break;
-			case "white_knight": this.GetComponent<SpriteRenderer>().sprite = white_knight; player = "white"; break;
-			case "white_pawn": this.GetComponent<SpriteRenderer>().sprite = white_pawn; player = "white"; break;
-		}
+		// Updates sprite (from default)
+		UpdateSprite(this.pieceName.ToString());
 
 	}
 	
+	// Deprecated old method
 	public void SetCoordinates() {
-		float x = xBoard;
-		float y = yBoard;
-
-		// Adjust the coordinates to fit the board
-		x *= 0.66f;
-		y *= 0.66f;
-
-		x -= 2.3f;
-		y -= 2.19f;
-
-		this.transform.position = new Vector3(x, y, -1.0f);
 
 		/*
 		// Get the position of the chess piece and set the coordinates
@@ -82,7 +65,7 @@ public class Chessman : MonoBehaviour
 	}
 
 	public void InitiateMovePlates() {
-		switch (this.name) {
+		switch (this.pieceName.ToString()) {
 			case "black_king":
 			case "white_king":
 				SurroundMovePlate();
@@ -117,10 +100,10 @@ public class Chessman : MonoBehaviour
 				LMovePlate();
 				break;
 			case "black_pawn":
-				PawnMovePlate(xBoard, yBoard - 1);
+				PawnMovePlate(xBoard.Value, yBoard.Value - 1);
 				break;
 			case "white_pawn":
-				PawnMovePlate(xBoard, yBoard + 1);
+				PawnMovePlate(xBoard.Value, yBoard.Value + 1);
 				break;
 		}
 	}
@@ -129,27 +112,27 @@ public class Chessman : MonoBehaviour
 	// Getters and Setters for the board coordinates
 
 	public int GetXBoard() {
-		return xBoard;
+		return xBoard.Value;
 	}
 
 	public int GetYBoard() {
-		return yBoard;
+		return yBoard.Value;
 	}
 
 	public void SetXBoard(int x) {
-		xBoard = x;
+		xBoard.Value = x;
 	}
 
 	public void SetYBoard(int y) {
-		yBoard = y;
+		yBoard.Value = y;
 	}
 
 	// GH post
 	public void LineMovePlate(int xIncrement, int yIncrement) {
 		Game sc = controller.GetComponent<Game>();
 
-		int x = xBoard + xIncrement;
-		int y = yBoard + yIncrement;
+		int x = xBoard.Value + xIncrement;
+		int y = yBoard.Value + yIncrement;
 
 		while (sc.PositionOnBoard(x, y) && sc.GetPosition(x, y) == null) {
 			MovePlateSpawn(x, y);
@@ -163,25 +146,25 @@ public class Chessman : MonoBehaviour
 	}
 
 	public void LMovePlate() {
-		PointMovePlate(xBoard + 1, yBoard + 2);
-		PointMovePlate(xBoard - 1, yBoard + 2);
-		PointMovePlate(xBoard + 2, yBoard + 1);
-		PointMovePlate(xBoard + 2, yBoard - 1);
-		PointMovePlate(xBoard + 1, yBoard - 2);
-		PointMovePlate(xBoard - 1, yBoard - 2);
-		PointMovePlate(xBoard - 2, yBoard + 1);
-		PointMovePlate(xBoard - 2, yBoard - 1);
+		PointMovePlate(xBoard.Value + 1, yBoard.Value + 2);
+		PointMovePlate(xBoard.Value - 1, yBoard.Value + 2);
+		PointMovePlate(xBoard.Value + 2, yBoard.Value + 1);
+		PointMovePlate(xBoard.Value + 2, yBoard.Value - 1);
+		PointMovePlate(xBoard.Value + 1, yBoard.Value - 2);
+		PointMovePlate(xBoard.Value - 1, yBoard.Value - 2);
+		PointMovePlate(xBoard.Value - 2, yBoard.Value + 1);
+		PointMovePlate(xBoard.Value - 2, yBoard.Value - 1);
 	}
 
 	public void SurroundMovePlate() {
-		PointMovePlate(xBoard, yBoard + 1);
-		PointMovePlate(xBoard, yBoard - 1);
-		PointMovePlate(xBoard - 1, yBoard + 0);
-		PointMovePlate(xBoard - 1, yBoard - 1);
-		PointMovePlate(xBoard - 1, yBoard + 1);
-		PointMovePlate(xBoard + 1, yBoard + 0);
-		PointMovePlate(xBoard + 1, yBoard - 1);
-		PointMovePlate(xBoard + 1, yBoard + 1);
+		PointMovePlate(xBoard.Value, yBoard.Value + 1);
+		PointMovePlate(xBoard.Value, yBoard.Value - 1);
+		PointMovePlate(xBoard.Value - 1, yBoard.Value + 0);
+		PointMovePlate(xBoard.Value - 1, yBoard.Value - 1);
+		PointMovePlate(xBoard.Value - 1, yBoard.Value + 1);
+		PointMovePlate(xBoard.Value + 1, yBoard.Value + 0);
+		PointMovePlate(xBoard.Value + 1, yBoard.Value - 1);
+		PointMovePlate(xBoard.Value + 1, yBoard.Value + 1);
 	}
 
 	public void PointMovePlate(int x, int y) {
@@ -256,5 +239,65 @@ public class Chessman : MonoBehaviour
 		mpScript.SetReference(gameObject);
 		mpScript.SetCoords(matrixX, matrixY);
 	}
+
+	// Network handler
+	private void OnEnable() {
+		pieceName.OnValueChanged += OnPieceNameChanged;
+		xBoard.OnValueChanged += OnPositionChanged;
+		yBoard.OnValueChanged += OnPositionChanged;
+	}
+
+	private void OnDisable() {
+		pieceName.OnValueChanged -= OnPieceNameChanged;
+		xBoard.OnValueChanged -= OnPositionChanged;
+		yBoard.OnValueChanged -= OnPositionChanged;
+	}
+
+	public override void OnNetworkSpawn() {
+		UpdateSprite(pieceName.Value.ToString());
+		UpdatePosition();
+	}
+
+	private void OnPieceNameChanged(FixedString32Bytes oldValue, FixedString32Bytes newValue) {
+		UpdateSprite(newValue.ToString());
+	}
+	private void OnPositionChanged(int oldValue, int newValue) {
+		UpdatePosition();
+	}
+
+	// Updates in case of new position
+	public void UpdatePosition() {
+		float x = xBoard.Value;
+		float y = yBoard.Value;
+
+		// Adjust the coordinates to fit the board
+		x *= 0.66f;
+		y *= 0.66f;
+
+		x -= 2.3f;
+		y -= 2.19f;
+
+		this.transform.position = new Vector3(x, y, -1.0f);
+	}
+
+	// Changes the piece (from default or not)
+	public void UpdateSprite(string newPiece) {
+		switch (newPiece) {
+			case "black_king": this.GetComponent<SpriteRenderer>().sprite = black_king; player = "black";break;
+			case "black_queen": this.GetComponent<SpriteRenderer>().sprite = black_queen; player = "black"; break;
+			case "black_rook": this.GetComponent<SpriteRenderer>().sprite = black_rook; player = "black"; break;
+			case "black_bishop": this.GetComponent<SpriteRenderer>().sprite = black_bishop; player = "black"; break;
+			case "black_knight": this.GetComponent<SpriteRenderer>().sprite = black_knight; player = "black"; break;
+			case "black_pawn": this.GetComponent<SpriteRenderer>().sprite = black_pawn; player = "black"; break;
+
+			case "white_king": this.GetComponent<SpriteRenderer>().sprite = white_king; player = "white"; break;
+			case "white_queen": this.GetComponent<SpriteRenderer>().sprite = white_queen; player = "white"; break;
+			case "white_rook": this.GetComponent<SpriteRenderer>().sprite = white_rook; player = "white"; break;
+			case "white_bishop": this.GetComponent<SpriteRenderer>().sprite = white_bishop; player = "white"; break;
+			case "white_knight": this.GetComponent<SpriteRenderer>().sprite = white_knight; player = "white"; break;
+			case "white_pawn": this.GetComponent<SpriteRenderer>().sprite = white_pawn; player = "white"; break;
+		}
+	}
+
 
 }
