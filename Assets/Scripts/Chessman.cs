@@ -1,9 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
+// using System.Diagnostics;
 using System.Security.Cryptography;
-using UnityEngine;
 using Unity.Collections;
 using Unity.Netcode;
+using UnityEngine;
 
 public class Chessman : NetworkBehaviour {
 	// References
@@ -53,6 +54,7 @@ public class Chessman : NetworkBehaviour {
 	}
 
 	private void OnMouseUp()  {
+		Debug.Log("ow!");
 		DestroyMovePlates();
 		InitiateMovePlates();
 	}
@@ -65,6 +67,12 @@ public class Chessman : NetworkBehaviour {
 	}
 
 	public void InitiateMovePlates() {
+		Debug.Log("Soy " + this.pieceName);
+		string nombreCuerda = this.pieceName.ToString();
+		Debug.Log("También soy " + nombreCuerda);
+
+		Debug.Log("Mis cordenadas son: " + xBoard.Value + "|" + yBoard.Value);
+
 		switch (this.pieceName.ToString()) {
 			case "black_king":
 			case "white_king":
@@ -282,7 +290,8 @@ public class Chessman : NetworkBehaviour {
 
 	// Changes the piece (from default or not)
 	public void UpdateSprite(string newPiece) {
-		switch (newPiece) {
+		Debug.Log(newPiece);
+		switch (newPiece.Trim()) {
 			case "black_king": this.GetComponent<SpriteRenderer>().sprite = black_king; player = "black";break;
 			case "black_queen": this.GetComponent<SpriteRenderer>().sprite = black_queen; player = "black"; break;
 			case "black_rook": this.GetComponent<SpriteRenderer>().sprite = black_rook; player = "black"; break;

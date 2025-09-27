@@ -2,7 +2,7 @@
 - Project name: YomiChess
 - Unity version: Unity 2022.3.38f1
 - Active game object:
-  - Name: Controller
-  - Tag: GameController
+  - Name: chesspiece
+  - Tag: Untagged
   - Layer: Default
 <!-- UNITY CODE ASSIST INSTRUCTIONS END -->

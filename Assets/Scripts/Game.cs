@@ -86,7 +86,8 @@ public class Game : NetworkBehaviour {
 
 
 		Chessman cm = obj.GetComponent<Chessman>();
-		cm.pieceName.Value = name;
+		FixedString32Bytes nn = name;
+		cm.pieceName.Value = nn;
 		cm.SetXBoard(x);
 		cm.SetYBoard(y);
 		cm.Activate(); // Sugested removal
