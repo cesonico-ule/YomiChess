@@ -10,6 +10,7 @@ Library: C:\Users\cesae\Documents\GitHub\YomiChess\Temp\BurstOutput\Data\Plugins
 --linker-options=PdbAltPath="Chess_variant_TFG_dev_1_Data/Plugins/x86_64/lib_burst_generated.pdb"
 --generate-link-xml=Temp\burst.link.xml
 --temp-folder=C:\Users\cesae\Documents\GitHub\YomiChess\Temp\Burst
+--debug=Full
 --key-folder=C:/Program Files/Unity/Hub/Editor/2022.3.38f1/Editor/Data/PlaybackEngines/WindowsStandaloneSupport
 --decode-folder=C:\Users\cesae\Documents\GitHub\YomiChess\Library\Burst
 --output=C:\Users\cesae\Documents\GitHub\YomiChess\Temp\BurstOutput\Data\Plugins\x86_64\lib_burst_generated
@@ -119,6 +120,7 @@ Library: C:\Users\cesae\Documents\GitHub\YomiChess\Temp\BurstOutput\Data\Plugins
 --linker-options=PdbAltPath="Chess_variant_TFG_dev_1_Data/Plugins/x86_64/lib_burst_generated.pdb"
 --generate-link-xml=Temp\burst.link.xml
 --temp-folder=C:\Users\cesae\Documents\GitHub\YomiChess\Temp\Burst
+--debug=Full
 --key-folder=C:/Program Files/Unity/Hub/Editor/2022.3.38f1/Editor/Data/PlaybackEngines/WindowsStandaloneSupport
 --decode-folder=C:\Users\cesae\Documents\GitHub\YomiChess\Library\Burst
 --output=C:\Users\cesae\Documents\GitHub\YomiChess\Temp\BurstOutput\Data\Plugins\x86_64\lib_burst_generated
