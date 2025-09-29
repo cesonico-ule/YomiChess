@@ -67,13 +67,13 @@ public class Chessman : NetworkBehaviour {
 	}
 
 	public void InitiateMovePlates() {
-		Debug.Log("Soy " + this.pieceName);
-		string nombreCuerda = this.pieceName.ToString();
+		Debug.Log("Soy " + this.pieceName.Value.ToString());
+		string nombreCuerda = this.pieceName.Value.ToString();
 		Debug.Log("También soy " + nombreCuerda);
 
 		Debug.Log("Mis cordenadas son: " + xBoard.Value + "|" + yBoard.Value);
 
-		switch (this.pieceName.ToString()) {
+		switch (nombreCuerda) {
 			case "black_king":
 			case "white_king":
 				SurroundMovePlate();
@@ -188,7 +188,7 @@ public class Chessman : NetworkBehaviour {
 		}
 	}
 
-	public void PawnMovePlate(int x, int y) {
+	public void PawnMovePlate(int x, int y) { // Double advance yet to be implemented
 		Game sc = controller.GetComponent<Game>();
 		if (sc.PositionOnBoard(x, y)) {
 			if (sc.GetPosition(x, y) == null) {
@@ -262,6 +262,10 @@ public class Chessman : NetworkBehaviour {
 	}
 
 	public override void OnNetworkSpawn() {
+
+		// Set up the controller reference for both server and client
+		controller = GameObject.FindGameObjectWithTag("GameController");
+
 		UpdateSprite(pieceName.Value.ToString());
 		UpdatePosition();
 	}
@@ -290,7 +294,7 @@ public class Chessman : NetworkBehaviour {
 
 	// Changes the piece (from default or not)
 	public void UpdateSprite(string newPiece) {
-		Debug.Log(newPiece);
+		// Debug.Log(newPiece); // Test for string conversion
 		switch (newPiece.Trim()) {
 			case "black_king": this.GetComponent<SpriteRenderer>().sprite = black_king; player = "black";break;
 			case "black_queen": this.GetComponent<SpriteRenderer>().sprite = black_queen; player = "black"; break;

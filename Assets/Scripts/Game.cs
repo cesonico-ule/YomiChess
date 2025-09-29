@@ -86,10 +86,13 @@ public class Game : NetworkBehaviour {
 
 
 		Chessman cm = obj.GetComponent<Chessman>();
-		FixedString32Bytes nn = name;
+		FixedString32Bytes nn = new FixedString32Bytes(name);
 		cm.pieceName.Value = nn;
 		cm.SetXBoard(x);
 		cm.SetYBoard(y);
+
+		cm.controller = GameObject.FindGameObjectWithTag("GameController");
+
 		cm.Activate(); // Sugested removal
 
 		netObj.Spawn();
