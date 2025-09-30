@@ -67,11 +67,10 @@ public class Chessman : NetworkBehaviour {
 	}
 
 	public void InitiateMovePlates() {
-		Debug.Log("Soy " + this.pieceName.Value.ToString());
+		// Debug.Log("Soy " + this.pieceName.Value.ToString());
 		string nombreCuerda = this.pieceName.Value.ToString();
 		// Debug.Log("También soy " + nombreCuerda);
-
-		Debug.Log("Mis cordenadas son: " + xBoard.Value + "|" + yBoard.Value);
+		// Debug.Log("Mis cordenadas son: " + xBoard.Value + "|" + yBoard.Value);
 
 		switch (nombreCuerda) {
 			case "black_king":
@@ -188,11 +187,14 @@ public class Chessman : NetworkBehaviour {
 		}
 	}
 
-	public void PawnMovePlate(int x, int y) { // Double advance yet to be implemented
+	public void PawnMovePlate(int x, int y) {
 		Game sc = controller.GetComponent<Game>();
 		if (sc.PositionOnBoard(x, y)) {
 			if (sc.GetPosition(x, y) == null) {
 				MovePlateSpawn(x, y);
+
+				// Double advance yet to be implemented
+
 			}
 
 			if (sc.PositionOnBoard(x + 1, y) && sc.GetPosition(x + 1, y) != null && sc.GetPosition(x + 1, y).GetComponent<Chessman>().player != player) {

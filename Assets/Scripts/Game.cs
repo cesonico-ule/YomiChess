@@ -102,8 +102,8 @@ public class Game : NetworkBehaviour {
 
 	public void SetPosition(GameObject obj) {
 		// Set the position of the chess piece on the board
-		Chessman cm = obj.GetComponent<Chessman>();
-		positions[cm.GetXBoard(), cm.GetYBoard()] = obj;
+		// Chessman cm = obj.GetComponent<Chessman>();
+		// positions[cm.GetXBoard(), cm.GetYBoard()] = obj;
 
 
 		/*
@@ -113,11 +113,29 @@ public class Game : NetworkBehaviour {
 			controller.GetComponent<Game>().SetPosition(obj);
 		}
 		*/
+
+		// New RPC method
+		Chessman cm = obj.GetComponent<Chessman>();
+		int x = cm.GetXBoard();
+		int y = cm.GetYBoard();
+
+		positions[x, y] = obj;
+
+		// Sync to all clients if we're the server
+		if (NetworkManager.Singleton.IsServer) {
+			NetworkObject netObj = obj.GetComponent<NetworkObject>();
+			UpdatePositionClientRpc(netObj, x, y);
+		}
+
 	}
 
 	public void SetPositionEmpty (int x, int y) {
 		// Set the position of the chess piece on the board to empty
 		positions[x, y] = null;
+		// Sync to all clients if we're the server
+		if (NetworkManager.Singleton.IsServer) {
+			SetPositionEmptyClientRpc(x, y);
+		}
 	}
 
 	public GameObject GetPosition(int x, int y) {
@@ -154,4 +172,18 @@ public class Game : NetworkBehaviour {
 			SetPositionEmpty(x, y);
 		}
 	}
+
+	[ClientRpc]
+	public void UpdatePositionClientRpc(NetworkObjectReference pieceRef, int x, int y) {
+		if (pieceRef.TryGet(out NetworkObject netObj)) {
+			GameObject piece = netObj.gameObject;
+			positions[x, y] = piece;
+		}
+	}
+
+	[ClientRpc]
+	public void SetPositionEmptyClientRpc(int x, int y) {
+		positions[x, y] = null;
+	}
+
 }
