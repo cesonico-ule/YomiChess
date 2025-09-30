@@ -24,7 +24,8 @@ public class MovePlate : MonoBehaviour
 			gameObject.GetComponent<SpriteRenderer>().color = new Color(1.0f, 0.0f, 0.0f, 0.5f); ;
 		}
 	}
-
+	/*
+	// OnMouseUp is called when the user has released the mouse button (previous way)
 	public void OnMouseUp() {
 		controller = GameObject.FindGameObjectWithTag("GameController");
 
@@ -45,7 +46,36 @@ public class MovePlate : MonoBehaviour
 
 		reference.GetComponent<Chessman>().DestroyMovePlates();
 	}
-	
+	*/
+
+	public void OnMouseUp() {
+		controller = GameObject.FindGameObjectWithTag("GameController");
+
+		Chessman chessman = reference.GetComponent<Chessman>();
+		int oldX = chessman.GetXBoard();
+		int oldY = chessman.GetYBoard();
+
+		if (attack) {
+			GameObject cp = controller.GetComponent<Game>().GetPosition(matrixX, matrixY);
+			if (cp != null) {
+				// Request the server to destroy the piece
+				NetworkObject netObj = cp.GetComponent<NetworkObject>();
+				if (netObj != null && NetworkManager.Singleton.IsServer) {
+					netObj.Despawn();
+					Destroy(cp);
+				} else if (netObj != null) {
+					// Client needs to request destruction via ServerRpc
+					// You'll need to add a ServerRpc to Game.cs for this
+					controller.GetComponent<Game>().RequestDestroyPieceServerRpc(matrixX, matrixY);
+				}
+			}
+		}
+
+		// Request the move from the server instead of doing it directly
+		chessman.RequestMoveServerRpc(matrixX, matrixY, oldX, oldY);
+
+		chessman.DestroyMovePlates();
+	}
 
 	public void SetCoords(int x, int y) {
 		matrixX = x;

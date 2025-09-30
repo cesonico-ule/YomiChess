@@ -141,4 +141,17 @@ public class Game : NetworkBehaviour {
 	public void StartClient() {
 		NetworkManager.Singleton.StartClient();
 	}
+
+	[ServerRpc(RequireOwnership = false)]
+	public void RequestDestroyPieceServerRpc(int x, int y) {
+		GameObject piece = GetPosition(x, y);
+		if (piece != null) {
+			NetworkObject netObj = piece.GetComponent<NetworkObject>();
+			if (netObj != null) {
+				netObj.Despawn();
+			}
+			Destroy(piece);
+			SetPositionEmpty(x, y);
+		}
+	}
 }

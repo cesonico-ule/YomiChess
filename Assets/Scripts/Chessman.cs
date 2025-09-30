@@ -69,7 +69,7 @@ public class Chessman : NetworkBehaviour {
 	public void InitiateMovePlates() {
 		Debug.Log("Soy " + this.pieceName.Value.ToString());
 		string nombreCuerda = this.pieceName.Value.ToString();
-		Debug.Log("También soy " + nombreCuerda);
+		// Debug.Log("También soy " + nombreCuerda);
 
 		Debug.Log("Mis cordenadas son: " + xBoard.Value + "|" + yBoard.Value);
 
@@ -275,6 +275,18 @@ public class Chessman : NetworkBehaviour {
 	}
 	private void OnPositionChanged(int oldValue, int newValue) {
 		UpdatePosition();
+	}
+
+	[ServerRpc(RequireOwnership = false)]
+	public void RequestMoveServerRpc(int newX, int newY, int oldX, int oldY) {
+		// Only server executes this code
+		// Update the NetworkVariables (only server can do this)
+		xBoard.Value = newX;
+		yBoard.Value = newY;
+
+		// Update the game board state
+		controller.GetComponent<Game>().SetPositionEmpty(oldX, oldY);
+		controller.GetComponent<Game>().SetPosition(gameObject);
 	}
 
 	// Updates in case of new position
