@@ -54,7 +54,15 @@ public class Chessman : NetworkBehaviour {
 	}
 
 	private void OnMouseUp()  {
-		Debug.Log("ow!");
+		string currentPlayerColor = controller.GetComponent<Game>().GetCurrentPlayerColor();
+
+		// Only allow moving pieces that match the current player's color
+		if (player != currentPlayerColor) {
+			Debug.Log("Not your piece! You control " + currentPlayerColor + " pieces.");
+			return;
+		}
+
+		// Debug.Log("ow!");
 		DestroyMovePlates();
 		InitiateMovePlates();
 	}

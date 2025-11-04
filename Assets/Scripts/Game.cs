@@ -151,6 +151,15 @@ public class Game : NetworkBehaviour {
 		}
 	}
 
+	public string GetCurrentPlayerColor() {
+		// Host plays white, client plays black
+		if (NetworkManager.Singleton.IsHost) {
+			return "white";
+		} else {
+			return "black";
+		}
+	}
+
 	// ---	NETWORK ---
 	public void Starthost() {
 		NetworkManager.Singleton.StartHost();
