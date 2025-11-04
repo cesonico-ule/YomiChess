@@ -193,9 +193,22 @@ public class Chessman : NetworkBehaviour {
 			if (sc.GetPosition(x, y) == null) {
 				MovePlateSpawn(x, y);
 
-				// Double advance yet to be implemented
+				// Double advance for pawns in starting position
+				int startRow = player == "white" ? 1 : 6;
+				int direction = player == "white" ? 1 : -1;
+
+				if (yBoard.Value == startRow) {
+					int doubleY = y + direction;
+					// Check if both squares ahead are empty
+					if (sc.PositionOnBoard(x, doubleY) && sc.GetPosition(x, doubleY) == null) {
+						MovePlateSpawn(x, doubleY);
+					}
+
+				}
 
 			}
+
+			// Pawn eating moves
 
 			if (sc.PositionOnBoard(x + 1, y) && sc.GetPosition(x + 1, y) != null && sc.GetPosition(x + 1, y).GetComponent<Chessman>().player != player) {
 				MovePlateAttackSpawn(x + 1, y);
@@ -204,6 +217,7 @@ public class Chessman : NetworkBehaviour {
 			if (sc.PositionOnBoard(x - 1, y) && sc.GetPosition(x - 1, y) != null && sc.GetPosition(x - 1, y).GetComponent<Chessman>().player != player) {
 				MovePlateAttackSpawn(x - 1, y);
 			}
+			
 		}
 	}
 
