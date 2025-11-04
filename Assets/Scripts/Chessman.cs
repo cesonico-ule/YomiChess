@@ -264,6 +264,17 @@ public class Chessman : NetworkBehaviour {
 		mpScript.SetCoords(matrixX, matrixY);
 	}
 
+	public void CheckPromotion() {
+		string pieceType = pieceName.Value.ToString().Trim();
+
+		// Check if it's a pawn that reached the final rank
+		if (pieceType == "white_pawn" && yBoard.Value == 7) {
+			PromoteToQueenServerRpc();
+		} else if (pieceType == "black_pawn" && yBoard.Value == 0) {
+			PromoteToQueenServerRpc();
+		}
+	}
+
 	// Network handler
 	private void OnEnable() {
 		pieceName.OnValueChanged += OnPieceNameChanged;
@@ -303,6 +314,9 @@ public class Chessman : NetworkBehaviour {
 		// Update the game board state
 		controller.GetComponent<Game>().SetPositionEmpty(oldX, oldY);
 		controller.GetComponent<Game>().SetPosition(gameObject);
+
+		// Check for pawn promotion
+		CheckPromotion();
 	}
 
 	// Updates in case of new position
@@ -318,6 +332,12 @@ public class Chessman : NetworkBehaviour {
 		y -= 2.19f;
 
 		this.transform.position = new Vector3(x, y, -1.0f);
+	}
+
+	[ServerRpc(RequireOwnership = false)]
+	private void PromoteToQueenServerRpc() {
+		string queenName = player == "white" ? "white_queen" : "black_queen";
+		pieceName.Value = new FixedString32Bytes(queenName);
 	}
 
 	// Changes the piece (from default or not)
@@ -340,5 +360,7 @@ public class Chessman : NetworkBehaviour {
 		}
 	}
 
+	
 
+	
 }
