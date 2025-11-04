@@ -1,0 +1,4 @@
+repository "Chess_variant_TFG_dev_1/YomiChess@20066376709574@cloud"
+  path "/"
+    br "/main"
+    co "/main"
