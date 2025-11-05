@@ -2,7 +2,7 @@
 - Project name: YomiChess
 - Unity version: Unity 6000.2.10f1
 - Active game object:
-  - Name: UI
-  - Tag: Untagged
-  - Layer: UI
+  - Name: moveplate
+  - Tag: MovePlate
+  - Layer: Default
 <!-- UNITY CODE ASSIST INSTRUCTIONS END -->

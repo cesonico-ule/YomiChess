@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Dynamic;
+using TMPro;
 using Unity.Collections;
 // using UnityEngine.Debug.log;
 using Unity.Netcode;
@@ -17,7 +18,7 @@ public class Game : NetworkBehaviour {
 
 	// UI References - assigned in the Inspector
 	public GameObject gameOverPanel;
-	public Text winnerText;
+	public TextMeshProUGUI winnerText;
 	public Button newGameButton;
 
 	// Positions and team for each piece
@@ -25,7 +26,7 @@ public class Game : NetworkBehaviour {
 	private GameObject[] playerBlack = new GameObject[16];
 	private GameObject[] playerWhite = new GameObject[16];
 
-	private string currentPlayer = "white"; // This might be useless or work to determine the player in a match against a bot
+	// private string currentPlayer = "white"; // This might be useless or work to determine the player in a match against a bot (I ended up using other parameter
 
 	private bool gameOver = false;
 
@@ -54,10 +55,7 @@ public class Game : NetworkBehaviour {
 			Debug.Log("Client with id " + clientId + " connected to the server");
 			if (NetworkManager.Singleton.IsHost && NetworkManager.Singleton.ConnectedClients.Count == 2) {
 				Debug.Log("Game is ready to begin");
-				currentPlayer = "white";
 				SetUpBoard();
-			} else {
-				currentPlayer = "black";
 			}
 		};
 	}
@@ -245,9 +243,12 @@ public class Game : NetworkBehaviour {
 	}
 
 	private void OnNewGameClicked() {
-		if (NetworkManager.Singleton.IsServer) {
+		ResetGameServerRpc();
+
+		/*if (NetworkManager.Singleton.IsServer) { // This is only in case I want to not allow clients to reset the game
 			ResetGameServerRpc();
 		}
+		*/
 	}
 
 	[ServerRpc(RequireOwnership = false)]
