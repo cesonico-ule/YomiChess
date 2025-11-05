@@ -51,6 +51,11 @@ public class MovePlate : MonoBehaviour
 	public void OnMouseUp() {
 		controller = GameObject.FindGameObjectWithTag("GameController");
 
+		// Check if game is over
+		if (controller.GetComponent<Game>().IsGameOver()) {
+			return; // Don't allow moves if game is over
+		}
+
 		Chessman chessman = reference.GetComponent<Chessman>();
 		int oldX = chessman.GetXBoard();
 		int oldY = chessman.GetYBoard();
@@ -61,17 +66,17 @@ public class MovePlate : MonoBehaviour
 				// Request the server to destroy the piece
 				NetworkObject netObj = cp.GetComponent<NetworkObject>();
 				if (netObj != null && NetworkManager.Singleton.IsServer) {
+					controller.GetComponent<Game>().CheckForKingCapture(cp);
 					netObj.Despawn();
 					Destroy(cp);
 				} else if (netObj != null) {
 					// Client needs to request destruction via ServerRpc
-					// You'll need to add a ServerRpc to Game.cs for this
 					controller.GetComponent<Game>().RequestDestroyPieceServerRpc(matrixX, matrixY);
 				}
 			}
 		}
 
-		// Request the move from the server instead of doing it directly
+		// Request the move from the server instead of doing it directly (maybe)
 		chessman.RequestMoveServerRpc(matrixX, matrixY, oldX, oldY);
 
 		chessman.DestroyMovePlates();

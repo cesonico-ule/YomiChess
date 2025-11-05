@@ -1,8 +1,8 @@
 <!-- UNITY CODE ASSIST INSTRUCTIONS START -->
 - Project name: YomiChess
-- Unity version: Unity 2022.3.38f1
+- Unity version: Unity 6000.2.10f1
 - Active game object:
-  - Name: chesspiece
+  - Name: UI
   - Tag: Untagged
-  - Layer: Default
+  - Layer: UI
 <!-- UNITY CODE ASSIST INSTRUCTIONS END -->

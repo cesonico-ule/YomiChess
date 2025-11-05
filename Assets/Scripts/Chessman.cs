@@ -56,6 +56,11 @@ public class Chessman : NetworkBehaviour {
 	private void OnMouseUp()  {
 		string currentPlayerColor = controller.GetComponent<Game>().GetCurrentPlayerColor();
 
+		// Check if game is over before allowing piece selection
+		if (controller != null && controller.GetComponent<Game>().IsGameOver()) {
+			return;
+		}
+
 		// Only allow moving pieces that match the current player's color
 		if (player != currentPlayerColor) {
 			Debug.Log("Not your piece! You control " + currentPlayerColor + " pieces.");
