@@ -50,7 +50,11 @@ public class Game : NetworkBehaviour {
 			newGameButton.onClick.AddListener(OnNewGameClicked);
 		}
 
+		// Now the network connection won't start here -> moved to StartGameSetup
 
+	}
+
+	public void StartGameSetup() {
 		NetworkManager.Singleton.OnClientConnectedCallback += (clientId) => {
 			Debug.Log("Client with id " + clientId + " connected to the server");
 			if (NetworkManager.Singleton.IsHost && NetworkManager.Singleton.ConnectedClients.Count == 2) {
@@ -64,7 +68,6 @@ public class Game : NetworkBehaviour {
 	public void SetUpBoard() {
 
 		// if (!IsServer) return; // Bugged for some reason
-
 
 		playerWhite = new GameObject[] {
 			Create("white_king", 4, 0), Create("white_queen", 3, 0),
@@ -191,6 +194,45 @@ public class Game : NetworkBehaviour {
 				GameOverClientRpc(winner);
 			}
 		}
+	}
+
+	public void CleanupGame() { // New method to clean up the game state when returning to menu, made it just in case anything breaks
+
+		// Destroy all pieces on the board
+		for (int x = 0; x < 8; x++) {
+			for (int y = 0; y < 8; y++) {
+				if (positions[x, y] != null) {
+					GameObject piece = positions[x, y];
+					NetworkObject netObj = piece.GetComponent<NetworkObject>();
+
+					// Only despawn if we're the server and the object is spawned
+					if (netObj != null && NetworkManager.Singleton.IsServer && netObj.IsSpawned) {
+						netObj.Despawn();
+					}
+
+					Destroy(piece);
+					positions[x, y] = null;
+				}
+			}
+		}
+
+		// Destroy all move plates
+		GameObject[] movePlates = GameObject.FindGameObjectsWithTag("MovePlate");
+		foreach (GameObject mp in movePlates) {
+			Destroy(mp);
+		}
+
+		// Reset game state
+		gameOver = false;
+		if (gameOverPanel != null) {
+			gameOverPanel.SetActive(false);
+		}
+
+		// Clear player arrays
+		playerWhite = new GameObject[16];
+		playerBlack = new GameObject[16];
+
+		Debug.Log("Game cleaned up and ready for new session");
 	}
 
 	// ---	NETWORK ---
