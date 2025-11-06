@@ -54,7 +54,20 @@ public class Chessman : NetworkBehaviour {
 	}
 
 	private void OnMouseUp()  {
-		Debug.Log("ow!");
+		string currentPlayerColor = controller.GetComponent<Game>().GetCurrentPlayerColor();
+
+		// Check if game is over before allowing piece selection
+		if (controller != null && controller.GetComponent<Game>().IsGameOver()) {
+			return;
+		}
+
+		// Only allow moving pieces that match the current player's color
+		if (player != currentPlayerColor) {
+			Debug.Log("Not your piece! You control " + currentPlayerColor + " pieces.");
+			return;
+		}
+
+		// Debug.Log("ow!");
 		DestroyMovePlates();
 		InitiateMovePlates();
 	}
@@ -193,9 +206,22 @@ public class Chessman : NetworkBehaviour {
 			if (sc.GetPosition(x, y) == null) {
 				MovePlateSpawn(x, y);
 
-				// Double advance yet to be implemented
+				// Double advance for pawns in starting position
+				int startRow = player == "white" ? 1 : 6;
+				int direction = player == "white" ? 1 : -1;
+
+				if (yBoard.Value == startRow) {
+					int doubleY = y + direction;
+					// Check if both squares ahead are empty
+					if (sc.PositionOnBoard(x, doubleY) && sc.GetPosition(x, doubleY) == null) {
+						MovePlateSpawn(x, doubleY);
+					}
+
+				}
 
 			}
+
+			// Pawn eating moves
 
 			if (sc.PositionOnBoard(x + 1, y) && sc.GetPosition(x + 1, y) != null && sc.GetPosition(x + 1, y).GetComponent<Chessman>().player != player) {
 				MovePlateAttackSpawn(x + 1, y);
@@ -204,6 +230,7 @@ public class Chessman : NetworkBehaviour {
 			if (sc.PositionOnBoard(x - 1, y) && sc.GetPosition(x - 1, y) != null && sc.GetPosition(x - 1, y).GetComponent<Chessman>().player != player) {
 				MovePlateAttackSpawn(x - 1, y);
 			}
+			
 		}
 	}
 
@@ -250,6 +277,17 @@ public class Chessman : NetworkBehaviour {
 		mpScript.SetCoords(matrixX, matrixY);
 	}
 
+	public void CheckPromotion() {
+		string pieceType = pieceName.Value.ToString().Trim();
+
+		// Check if it's a pawn that reached the final rank
+		if (pieceType == "white_pawn" && yBoard.Value == 7) {
+			PromoteToQueenServerRpc();
+		} else if (pieceType == "black_pawn" && yBoard.Value == 0) {
+			PromoteToQueenServerRpc();
+		}
+	}
+
 	// Network handler
 	private void OnEnable() {
 		pieceName.OnValueChanged += OnPieceNameChanged;
@@ -289,6 +327,9 @@ public class Chessman : NetworkBehaviour {
 		// Update the game board state
 		controller.GetComponent<Game>().SetPositionEmpty(oldX, oldY);
 		controller.GetComponent<Game>().SetPosition(gameObject);
+
+		// Check for pawn promotion
+		CheckPromotion();
 	}
 
 	// Updates in case of new position
@@ -304,6 +345,12 @@ public class Chessman : NetworkBehaviour {
 		y -= 2.19f;
 
 		this.transform.position = new Vector3(x, y, -1.0f);
+	}
+
+	[ServerRpc(RequireOwnership = false)]
+	private void PromoteToQueenServerRpc() {
+		string queenName = player == "white" ? "white_queen" : "black_queen";
+		pieceName.Value = new FixedString32Bytes(queenName);
 	}
 
 	// Changes the piece (from default or not)
@@ -326,5 +373,7 @@ public class Chessman : NetworkBehaviour {
 		}
 	}
 
+	
 
+	
 }

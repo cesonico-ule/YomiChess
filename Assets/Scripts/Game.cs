@@ -3,10 +3,12 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Dynamic;
+using TMPro;
 using Unity.Collections;
 // using UnityEngine.Debug.log;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.UI;
 // using System.Diagnostics; Collides with debug.log
 
 public class Game : NetworkBehaviour {
@@ -14,17 +16,22 @@ public class Game : NetworkBehaviour {
 	public GameObject chesspiece;
 	public static Game Instance;
 
-    // Positions and team for each piece
-    private GameObject[,] positions = new GameObject[8, 8];
-    private GameObject[] playerBlack = new GameObject[16];
+	// UI References - assigned in the Inspector
+	public GameObject gameOverPanel;
+	public TextMeshProUGUI winnerText;
+	public Button newGameButton;
+
+	// Positions and team for each piece
+	private GameObject[,] positions = new GameObject[8, 8];
+	private GameObject[] playerBlack = new GameObject[16];
 	private GameObject[] playerWhite = new GameObject[16];
 
-    private string currentPlayer = "white"; // This might be useless or work to determine the player in a match against a bot
+	// private string currentPlayer = "white"; // This might be useless or work to determine the player in a match against a bot (I ended up using other parameter
 
-    private bool gameOver = false;
+	private bool gameOver = false;
 
 	private void Awake() { // Make sure there is only one instance of the game controller
-		if(Instance!=null && Instance != this) {
+		if (Instance != null && Instance != this) {
 			Destroy(gameObject);
 		} else {
 			Instance = this;
@@ -34,17 +41,25 @@ public class Game : NetworkBehaviour {
 
 	// Start is called before the first frame update
 	void Start() {
+		// Hide game over panel at start
+		if (gameOverPanel != null) {
+			gameOverPanel.SetActive(false);
+		}
+		// Set up new game button
+		if (newGameButton != null) {
+			newGameButton.onClick.AddListener(OnNewGameClicked);
+		}
+
+
 		NetworkManager.Singleton.OnClientConnectedCallback += (clientId) => {
 			Debug.Log("Client with id " + clientId + " connected to the server");
 			if (NetworkManager.Singleton.IsHost && NetworkManager.Singleton.ConnectedClients.Count == 2) {
 				Debug.Log("Game is ready to begin");
-				currentPlayer = "white";
 				SetUpBoard();
-			} else {
-				currentPlayer = "black";
 			}
 		};
 	}
+
 
 	public void SetUpBoard() {
 
@@ -129,7 +144,7 @@ public class Game : NetworkBehaviour {
 
 	}
 
-	public void SetPositionEmpty (int x, int y) {
+	public void SetPositionEmpty(int x, int y) {
 		// Set the position of the chess piece on the board to empty
 		positions[x, y] = null;
 		// Sync to all clients if we're the server
@@ -151,6 +166,33 @@ public class Game : NetworkBehaviour {
 		}
 	}
 
+	public string GetCurrentPlayerColor() {
+		// Host plays white, client plays black
+		if (NetworkManager.Singleton.IsHost) {
+			return "white";
+		} else {
+			return "black";
+		}
+	}
+
+	public bool IsGameOver() {
+		return gameOver;
+	}
+
+	public void CheckForKingCapture(GameObject capturedPiece) {
+		if (capturedPiece == null) return;
+
+		Chessman chess = capturedPiece.GetComponent<Chessman>();
+		string pieceName = chess.pieceName.Value.ToString().Trim();
+
+		if (pieceName == "white_king" || pieceName == "black_king") {
+			string winner = pieceName == "white_king" ? "Black" : "White";
+			if (NetworkManager.Singleton.IsServer) {
+				GameOverClientRpc(winner);
+			}
+		}
+	}
+
 	// ---	NETWORK ---
 	public void Starthost() {
 		NetworkManager.Singleton.StartHost();
@@ -164,6 +206,9 @@ public class Game : NetworkBehaviour {
 	public void RequestDestroyPieceServerRpc(int x, int y) {
 		GameObject piece = GetPosition(x, y);
 		if (piece != null) {
+			// Check if it's a king before destroying
+			CheckForKingCapture(piece);
+
 			NetworkObject netObj = piece.GetComponent<NetworkObject>();
 			if (netObj != null) {
 				netObj.Despawn();
@@ -185,5 +230,67 @@ public class Game : NetworkBehaviour {
 	public void SetPositionEmptyClientRpc(int x, int y) {
 		positions[x, y] = null;
 	}
+
+	[ClientRpc]
+	private void GameOverClientRpc(string winner) {
+		gameOver = true;
+		if (gameOverPanel != null) {
+			gameOverPanel.SetActive(true);
+		}
+		if (winnerText != null) {
+			winnerText.text = winner + " Wins!";
+		}
+	}
+
+	private void OnNewGameClicked() {
+		ResetGameServerRpc();
+
+		/*if (NetworkManager.Singleton.IsServer) { // This is only in case I want to not allow clients to reset the game
+			ResetGameServerRpc();
+		}
+		*/
+	}
+
+	[ServerRpc(RequireOwnership = false)]
+	private void ResetGameServerRpc() {
+		ResetGameClientRpc();
+	}
+
+	[ClientRpc]
+	private void ResetGameClientRpc() {
+		// Destroy all pieces
+		for (int x = 0; x < 8; x++) {
+			for (int y = 0; y < 8; y++) {
+				if (positions[x, y] != null) {
+					GameObject piece = positions[x, y];
+					NetworkObject netObj = piece.GetComponent<NetworkObject>();
+					if (netObj != null && NetworkManager.Singleton.IsServer) {
+						netObj.Despawn();
+					}
+					Destroy(piece);
+					positions[x, y] = null;
+				}
+			}
+		}
+
+		// Destroy all move plates
+		GameObject[] movePlates = GameObject.FindGameObjectsWithTag("MovePlate");
+		foreach (GameObject mp in movePlates) {
+			Destroy(mp);
+		}
+
+		// Reset game state
+		gameOver = false;
+		if (gameOverPanel != null) {
+			gameOverPanel.SetActive(false);
+		}
+
+		// Set up new board (only host)
+		if (NetworkManager.Singleton.IsServer) {
+			SetUpBoard();
+		}
+	}
+
+
 
 }
