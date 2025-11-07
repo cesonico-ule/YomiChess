@@ -75,13 +75,21 @@ public class MenuController : MonoBehaviour {
 	}
 
 	private void OnClasicoClicked() {
-		// TODO: Implement classic mode
-		Debug.Log("Clásico mode - not implemented yet");
+		ShowGame();
+		// Set game mode to classic
+		if (Game.Instance != null) {
+			Game.Instance.SetGameMode(true); // true = classic mode
+		}
+		Game.Instance.StartGameSetup();
+
 	}
 
 	private void OnChessKuneDoClicked() {
 		ShowGame();
-		// Optionally, you can tell Game.cs to start the game
+		// Optionally, tell Game.cs to start the game
+		if (Game.Instance != null) {
+			Game.Instance.SetGameMode(false); // false = simultaneous mode
+		}
 		Game.Instance.StartGameSetup();
 	}
 

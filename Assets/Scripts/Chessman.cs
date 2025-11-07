@@ -67,6 +67,12 @@ public class Chessman : NetworkBehaviour {
 			return;
 		}
 
+		// Check if it's your turn (only matters in classic mode)
+		if (!controller.GetComponent<Game>().IsMyTurn()) {
+			Debug.Log("It's not your turn!");
+			return;
+		}
+
 		// Debug.Log("ow!");
 		DestroyMovePlates();
 		InitiateMovePlates();

@@ -27,6 +27,9 @@ public class Game : NetworkBehaviour {
 	private GameObject[] playerWhite = new GameObject[16];
 
 	// private string currentPlayer = "white"; // This might be useless or work to determine the player in a match against a bot (I ended up using other parameter
+	// Game mode variables - This is now usefull for the classic mode
+	private bool isClassicMode = false;
+	private NetworkVariable<bool> isWhiteTurn = new NetworkVariable<bool>(true); // White always starts
 
 	private bool gameOver = false;
 
@@ -232,7 +235,58 @@ public class Game : NetworkBehaviour {
 		playerWhite = new GameObject[16];
 		playerBlack = new GameObject[16];
 
+		// Reset turn to white
+		if (NetworkManager.Singleton.IsServer) {
+			isWhiteTurn.Value = true;
+		}
+
 		Debug.Log("Game cleaned up and ready for new session");
+	}
+
+	// Classic gamemode
+	// Method to set game mode - call this from MenuController
+	public void SetGameMode(bool classic) {
+		isClassicMode = classic;
+		Debug.Log("Game mode set to: " + (classic ? "Classic" : "Chess Kune Do"));
+	}
+
+	public bool IsClassicMode() {
+		return isClassicMode;
+	}
+
+	// Check if it's the current player's turn (only matters in classic mode)
+	public bool IsMyTurn() {
+		if (!isClassicMode) {
+			return true; // In Chess Kune Do, it's always your turn
+		}
+
+		// In classic mode, check if your color matches the current turn
+		string myColor = GetCurrentPlayerColor();
+		bool whiteTurn = isWhiteTurn.Value;
+
+		if (myColor == "white" && whiteTurn) {
+			return true;
+		} else if (myColor == "black" && !whiteTurn) {
+			return true;
+		}
+
+		return false;
+	}
+
+	// Method to switch turns after a move (only in classic mode)
+	public void SwitchTurn() {
+		if (!isClassicMode) {
+			return; // Don't switch turns in Chess Kune Do
+		}
+
+		if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer) {
+			isWhiteTurn.Value = !isWhiteTurn.Value;
+			Debug.Log("Turn switched to: " + (isWhiteTurn.Value ? "White" : "Black"));
+		} else {
+			Debug.Log("Client called SwitchTurn - requesting server to switch");
+			// If client calls this, request the server to switch
+			SwitchTurnServerRpc();
+		}
 	}
 
 	// ---	NETWORK ---
@@ -331,8 +385,20 @@ public class Game : NetworkBehaviour {
 		if (NetworkManager.Singleton.IsServer) {
 			SetUpBoard();
 		}
+
+		// Reset turn to white
+		if (NetworkManager.Singleton.IsServer) {
+			isWhiteTurn.Value = true;
+		}
+
 	}
 
-
+	[ServerRpc(RequireOwnership = false)]
+	private void SwitchTurnServerRpc() {
+		if (isClassicMode) {
+			isWhiteTurn.Value = !isWhiteTurn.Value;
+			Debug.Log("Server switched turn to: " + (isWhiteTurn.Value ? "White" : "Black"));
+		}
+	}
 
 }

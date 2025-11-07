@@ -79,6 +79,9 @@ public class MovePlate : MonoBehaviour
 		// Request the move from the server instead of doing it directly (maybe)
 		chessman.RequestMoveServerRpc(matrixX, matrixY, oldX, oldY);
 
+		// Switch turn after move is complete (only in classic mode)
+		controller.GetComponent<Game>().SwitchTurn();
+
 		chessman.DestroyMovePlates();
 	}
 
