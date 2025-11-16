@@ -28,10 +28,13 @@ public class Game : NetworkBehaviour {
 
 	// private string currentPlayer = "white"; // This might be useless or work to determine the player in a match against a bot (I ended up using other parameter
 	// Game mode variables - This is now usefull for the classic mode
-	private bool isClassicMode = false;
+	private NetworkVariable<bool> isClassicMode = new NetworkVariable<bool>(false);
 	private NetworkVariable<bool> isWhiteTurn = new NetworkVariable<bool>(true); // White always starts
 
 	private bool gameOver = false;
+
+	// Track if callback has already been set up
+	private bool networkCallbackSetup = false;
 
 	private void Awake() { // Make sure there is only one instance of the game controller
 		if (Instance != null && Instance != this) {
@@ -57,16 +60,27 @@ public class Game : NetworkBehaviour {
 
 	}
 
-	public void StartGameSetup() {
-		NetworkManager.Singleton.OnClientConnectedCallback += (clientId) => {
-			Debug.Log("Client with id " + clientId + " connected to the server");
-			if (NetworkManager.Singleton.IsHost && NetworkManager.Singleton.ConnectedClients.Count == 2) {
-				Debug.Log("Game is ready to begin");
-				SetUpBoard();
-			}
-		};
+	public void StartGameSetup() { // new version of the method
+		// If callback was already set up, remove it first to avoid duplicates
+		if (networkCallbackSetup) {
+			NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
+		}
+
+		// Now the callback is set up
+		NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
+		networkCallbackSetup = true;
 	}
 
+
+	private void OnClientConnected(ulong clientId) {
+		Debug.Log("Client with id " + clientId + " connected to the server");
+		if (NetworkManager.Singleton.IsHost && NetworkManager.Singleton.ConnectedClients.Count == 2) {
+			Debug.Log("Game is ready to begin");
+			// Reset turn
+			isWhiteTurn.Value = true;
+			SetUpBoard();
+		}
+	}
 
 	public void SetUpBoard() {
 
@@ -209,7 +223,7 @@ public class Game : NetworkBehaviour {
 					NetworkObject netObj = piece.GetComponent<NetworkObject>();
 
 					// Only despawn if we're the server and the object is spawned
-					if (netObj != null && NetworkManager.Singleton.IsServer && netObj.IsSpawned) {
+					if (netObj != null && NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer && netObj.IsSpawned) {
 						netObj.Despawn();
 					}
 
@@ -240,23 +254,36 @@ public class Game : NetworkBehaviour {
 			isWhiteTurn.Value = true;
 		}
 
+		// REMOVE CALLBACK
+		if (networkCallbackSetup && NetworkManager.Singleton != null) {
+			NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
+			networkCallbackSetup = false;
+		}
+
 		Debug.Log("Game cleaned up and ready for new session");
 	}
 
 	// Classic gamemode
 	// Method to set game mode - call this from MenuController
 	public void SetGameMode(bool classic) {
-		isClassicMode = classic;
-		Debug.Log("Game mode set to: " + (classic ? "Classic" : "Chess Kune Do"));
+		// If HOST, set directly
+		if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer) {
+			isClassicMode.Value = classic;
+			Debug.Log("Server set game mode to: " + (classic ? "Classic" : "Chess Kune Do"));
+		}
+		// If CLIENT, request server to set
+		else if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsClient) {
+			RequestSetGameModeServerRpc(classic);
+		}
 	}
 
 	public bool IsClassicMode() {
-		return isClassicMode;
+		return isClassicMode.Value;
 	}
 
 	// Check if it's the current player's turn (only matters in classic mode)
 	public bool IsMyTurn() {
-		if (!isClassicMode) {
+		if (!isClassicMode.Value) {
 			return true; // In Chess Kune Do, it's always your turn
 		}
 
@@ -275,7 +302,7 @@ public class Game : NetworkBehaviour {
 
 	// Method to switch turns after a move (only in classic mode)
 	public void SwitchTurn() {
-		if (!isClassicMode) {
+		if (!isClassicMode.Value) {
 			return; // Don't switch turns in Chess Kune Do
 		}
 
@@ -395,9 +422,42 @@ public class Game : NetworkBehaviour {
 
 	[ServerRpc(RequireOwnership = false)]
 	private void SwitchTurnServerRpc() {
-		if (isClassicMode) {
+		if (isClassicMode.Value) {
 			isWhiteTurn.Value = !isWhiteTurn.Value;
 			Debug.Log("Server switched turn to: " + (isWhiteTurn.Value ? "White" : "Black"));
+		}
+	}
+
+	[ServerRpc(RequireOwnership = false)]
+	private void RequestSetGameModeServerRpc(bool classic, ServerRpcParams rpcParams = default) {
+		// Server recieves request from client
+		Debug.Log("Client requested game mode: " + (classic ? "Classic" : "Chess Kune Do"));
+
+		// verify if the requested mode matches the server's mode
+		if (isClassicMode.Value != classic) {
+			Debug.LogWarning("Game mode mismatch! Server is " +
+				(isClassicMode.Value ? "Classic" : "Chess Kune Do") +
+				" but client wants " + (classic ? "Classic" : "Chess Kune Do"));
+
+			// Notify the client about the mismatch
+			NotifyGameModeMismatchClientRpc(rpcParams.Receive.SenderClientId);
+			return;
+		}
+
+		Debug.Log("Game modes match! Proceeding...");
+	}
+
+	[ClientRpc]
+	private void NotifyGameModeMismatchClientRpc(ulong clientId) {
+		// Only notify the specific client
+		if (NetworkManager.Singleton.LocalClientId == clientId) {
+			Debug.LogError("Cannot join: Host is playing a different game mode!");
+
+			// disconnect from server
+			if (NetworkManager.Singleton.IsClient && !NetworkManager.Singleton.IsHost) {
+				NetworkManager.Singleton.Shutdown();
+			}
+
 		}
 	}
 
