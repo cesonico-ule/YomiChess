@@ -88,18 +88,23 @@ public class Game : NetworkBehaviour {
 	private void OnClientConnected(ulong clientId) {
 		Debug.Log("Client with id " + clientId + " connected to the server");
 
-		// If this is the HOST and we have 2 players, start the game
-		if (NetworkManager.Singleton.IsHost && NetworkManager.Singleton.ConnectedClients.Count == 2) {
-			Debug.Log("Game is ready to begin");
-			// Reset turn
-			isWhiteTurn.Value = true;
-			SetUpBoard();
+		// If we're the HOST (server), set the game mode NOW when client connects
+		if (NetworkManager.Singleton.IsHost) {
+			// Set the game mode based on what the host selected
+			isClassicMode.Value = localGameModeChoice;
+			Debug.Log("Host set game mode to: " + (isClassicMode.Value ? "Classic" : "Chess Kune Do"));
+
+			// If we have 2 players, start the game
+			if (NetworkManager.Singleton.ConnectedClients.Count == 2) {
+				Debug.Log("Game is ready to begin");
+				isWhiteTurn.Value = true;
+				SetUpBoard();
+			}
 		}
 
-		// If this is a CLIENT (not host) that just connected, verify game mode
+		// If this is a CLIENT that just connected
 		if (NetworkManager.Singleton.IsClient && !NetworkManager.Singleton.IsHost) {
-			Debug.Log("Client verifying game mode...");
-			// Wait a frame for network variables to sync, then check
+			Debug.Log("Client connected, will verify game mode...");
 			StartCoroutine(VerifyGameModeAfterConnection());
 		}
 	}
@@ -301,15 +306,8 @@ public class Game : NetworkBehaviour {
 	// Classic gamemode
 	// Method to set game mode - call this from MenuController
 	public void SetGameMode(bool classic) {
-		// Store the choice locally first
 		localGameModeChoice = classic;
-
-		// If we're the host/server, set it immediately
-		if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer) {
-			isClassicMode.Value = classic;
-			Debug.Log("Server set game mode to: " + (classic ? "Classic" : "Chess Kune Do"));
-		}
-		// Clients will verify this after connection in OnClientConnected
+		Debug.Log("Local game mode choice set to: " + (classic ? "Classic" : "Chess Kune Do"));
 	}
 
 	public bool IsClassicMode() {
@@ -524,27 +522,38 @@ public class Game : NetworkBehaviour {
 
 	private IEnumerator VerifyGameModeAfterConnection() {
 		// Wait for network variables to sync
-		yield return new WaitForSeconds(0.5f);
+		float waitTime = 0f;
+		float maxWait = 3f; // Maximum 3 seconds
 
-		Debug.Log("Client wants: " + (localGameModeChoice ? "Classic" : "Chess Kune Do") +
-				  ", Server has: " + (isClassicMode.Value ? "Classic" : "Chess Kune Do"));
+		// Keep waiting until isClassicMode has been set by the server OR timeout
+		while (waitTime < maxWait) {
+			yield return new WaitForSeconds(0.2f);
+			waitTime += 0.2f;
 
-		// Check if our choice matches the server
-		if (localGameModeChoice != isClassicMode.Value) {
-			Debug.LogError("Game mode mismatch! Disconnecting...");
-			Debug.LogError("You selected " + (localGameModeChoice ? "Classic" : "Chess Kune Do") +
-						  " but the host is playing " + (isClassicMode.Value ? "Classic" : "Chess Kune Do"));
+			Debug.Log("Checking sync... Client wants: " + (localGameModeChoice ? "Classic" : "Chess Kune Do") +
+					  ", Server has: " + (isClassicMode.Value ? "Classic" : "Chess Kune Do"));
 
-			// Disconnect
-			NetworkManager.Singleton.Shutdown();
-
-			// Return to menu
-			if (MenuController.Instance != null) {
-				MenuController.Instance.ShowMainMenuAfterError("Game mode mismatch! Host is playing a different mode.");
+			// Check if modes match
+			if (localGameModeChoice == isClassicMode.Value) {
+				Debug.Log("Game modes match! Ready to play.");
+				yield break; // Exit successfully
 			}
-		} else {
-			Debug.Log("Game modes match! Ready to play.");
+		}
+
+		// If we get here, there was a mismatch
+		Debug.LogError("Game mode mismatch after " + maxWait + " seconds!");
+		Debug.LogError("You selected " + (localGameModeChoice ? "Classic" : "Chess Kune Do") +
+					  " but the host is playing " + (isClassicMode.Value ? "Classic" : "Chess Kune Do"));
+
+		// Disconnect
+		if (NetworkManager.Singleton != null) {
+			NetworkManager.Singleton.Shutdown();
+		}
+
+		// Return to menu
+		if (MenuController.Instance != null) {
+			MenuController.Instance.ShowMainMenuAfterError("Game mode mismatch! Host is playing " +
+				(isClassicMode.Value ? "Classic" : "Chess Kune Do") + " mode.");
 		}
 	}
-
 }
