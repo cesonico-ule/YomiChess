@@ -77,10 +77,12 @@ public class Game : NetworkBehaviour {
 		// If callback was already set up, remove it first to avoid duplicates
 		if (networkCallbackSetup) {
 			NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
+			NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientDisconnected;
 		}
 
-		// Now the callback is set up
+		// Now set up the callbacks
 		NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
+		NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnected;
 		networkCallbackSetup = true;
 	}
 
@@ -106,6 +108,33 @@ public class Game : NetworkBehaviour {
 		if (NetworkManager.Singleton.IsClient && !NetworkManager.Singleton.IsHost) {
 			Debug.Log("Client connected, will verify game mode...");
 			StartCoroutine(VerifyGameModeAfterConnection());
+		}
+	}
+
+	// New method to handle client disconnection
+	private void OnClientDisconnected(ulong clientId) {
+		Debug.Log("Client with id " + clientId + " disconnected");
+
+		// If we're the host and a client disconnected
+		if (NetworkManager.Singleton.IsHost) {
+			Debug.Log("Client disconnected - resetting game");
+
+			// Clean up the game board
+			StartCoroutine(CleanupAfterDisconnect());
+		}
+		// If we're the client and got disconnected
+		else if (NetworkManager.Singleton.IsClient) {
+			Debug.Log("Disconnected from host");
+
+			// Clean up locally
+			CleanupGame();
+
+			// Return to menu (not wanted atm)
+			/*
+			if (MenuController.Instance != null) {
+				MenuController.Instance.ShowMainMenuAfterError("Disconnected from host");
+			}
+			*/
 		}
 	}
 
@@ -246,8 +275,7 @@ public class Game : NetworkBehaviour {
 		}
 	}
 
-	public void CleanupGame() { // New method to clean up the game state when returning to menu, made it just in case anything breaks
-
+	public void CleanupGame() {
 		// Destroy all pieces on the board
 		for (int x = 0; x < 8; x++) {
 			for (int y = 0; y < 8; y++) {
@@ -255,8 +283,8 @@ public class Game : NetworkBehaviour {
 					GameObject piece = positions[x, y];
 					NetworkObject netObj = piece.GetComponent<NetworkObject>();
 
-					// Only despawn if we're the server and the object is spawned
-					if (netObj != null && NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer && netObj.IsSpawned) {
+					if (netObj != null && NetworkManager.Singleton != null &&
+						NetworkManager.Singleton.IsServer && netObj.IsSpawned) {
 						netObj.Despawn();
 					}
 
@@ -283,25 +311,72 @@ public class Game : NetworkBehaviour {
 		playerBlack = new GameObject[16];
 
 		// Reset turn to white
-		if (NetworkManager.Singleton.IsServer) {
+		if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer) {
 			isWhiteTurn.Value = true;
 
-			// Reset win counters when returning to menu (optional)
-			// whiteWins.Value = 0;
-			// blackWins.Value = 0;
+			// Reset win counters when returning to menu
+			whiteWins.Value = 0;
+			blackWins.Value = 0;
 		}
 
 		// Update display
 		UpdateWinCounterDisplay();
 
-		// REMOVE CALLBACK
+		// REMOVE CALLBACKS
 		if (networkCallbackSetup && NetworkManager.Singleton != null) {
 			NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
+			NetworkManager.Singleton.OnClientDisconnectCallback -= OnClientDisconnected;
 			networkCallbackSetup = false;
 		}
 
 		Debug.Log("Game cleaned up and ready for new session");
 	}
+
+	private IEnumerator CleanupAfterDisconnect() {
+		// Wait a frame to ensure network state is updated
+		yield return new WaitForEndOfFrame();
+
+		// Destroy all pieces on the board
+		for (int x = 0; x < 8; x++) {
+			for (int y = 0; y < 8; y++) {
+				if (positions[x, y] != null) {
+					GameObject piece = positions[x, y];
+					NetworkObject netObj = piece.GetComponent<NetworkObject>();
+
+					if (netObj != null && netObj.IsSpawned) {
+						netObj.Despawn();
+					}
+
+					Destroy(piece);
+					positions[x, y] = null;
+				}
+			}
+		}
+
+		// Destroy all move plates
+		GameObject[] movePlates = GameObject.FindGameObjectsWithTag("MovePlate");
+		foreach (GameObject mp in movePlates) {
+			Destroy(mp);
+		}
+
+		// Reset game state
+		gameOver = false;
+		if (gameOverPanel != null) {
+			gameOverPanel.SetActive(false);
+		}
+
+		// Clear player arrays
+		playerWhite = new GameObject[16];
+		playerBlack = new GameObject[16];
+
+		// Reset turn
+		if (NetworkManager.Singleton.IsServer) {
+			isWhiteTurn.Value = true;
+		}
+
+		Debug.Log("Game cleaned up after client disconnect - ready for new opponent");
+	}
+
 
 	// Classic gamemode
 	// Method to set game mode - call this from MenuController
