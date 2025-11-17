@@ -31,7 +31,18 @@ public class Game : NetworkBehaviour {
 	private NetworkVariable<bool> isClassicMode = new NetworkVariable<bool>(false);
 	private NetworkVariable<bool> isWhiteTurn = new NetworkVariable<bool>(true); // White always starts
 
+	// UI References for win counter
+	public TextMeshProUGUI whiteWinsText;
+	public TextMeshProUGUI blackWinsText;
+
+	// Win counters (synced across network)
+	private NetworkVariable<int> whiteWins = new NetworkVariable<int>(0);
+	private NetworkVariable<int> blackWins = new NetworkVariable<int>(0);
+
 	private bool gameOver = false;
+
+	// Store the mode LOCALLY (not networked yet)
+	private bool localGameModeChoice = false;
 
 	// Track if callback has already been set up
 	private bool networkCallbackSetup = false;
@@ -56,6 +67,8 @@ public class Game : NetworkBehaviour {
 			newGameButton.onClick.AddListener(OnNewGameClicked);
 		}
 
+		// Initialize win counter display
+		UpdateWinCounterDisplay();
 		// Now the network connection won't start here -> moved to StartGameSetup
 
 	}
@@ -74,11 +87,20 @@ public class Game : NetworkBehaviour {
 
 	private void OnClientConnected(ulong clientId) {
 		Debug.Log("Client with id " + clientId + " connected to the server");
+
+		// If this is the HOST and we have 2 players, start the game
 		if (NetworkManager.Singleton.IsHost && NetworkManager.Singleton.ConnectedClients.Count == 2) {
 			Debug.Log("Game is ready to begin");
 			// Reset turn
 			isWhiteTurn.Value = true;
 			SetUpBoard();
+		}
+
+		// If this is a CLIENT (not host) that just connected, verify game mode
+		if (NetworkManager.Singleton.IsClient && !NetworkManager.Singleton.IsHost) {
+			Debug.Log("Client verifying game mode...");
+			// Wait a frame for network variables to sync, then check
+			StartCoroutine(VerifyGameModeAfterConnection());
 		}
 	}
 
@@ -208,6 +230,12 @@ public class Game : NetworkBehaviour {
 		if (pieceName == "white_king" || pieceName == "black_king") {
 			string winner = pieceName == "white_king" ? "Black" : "White";
 			if (NetworkManager.Singleton.IsServer) {
+				// Increment the appropriate win counter
+				if (winner == "White") {
+					whiteWins.Value++;
+				} else {
+					blackWins.Value++;
+				}
 				GameOverClientRpc(winner);
 			}
 		}
@@ -252,7 +280,14 @@ public class Game : NetworkBehaviour {
 		// Reset turn to white
 		if (NetworkManager.Singleton.IsServer) {
 			isWhiteTurn.Value = true;
+
+			// Reset win counters when returning to menu (optional)
+			// whiteWins.Value = 0;
+			// blackWins.Value = 0;
 		}
+
+		// Update display
+		UpdateWinCounterDisplay();
 
 		// REMOVE CALLBACK
 		if (networkCallbackSetup && NetworkManager.Singleton != null) {
@@ -266,15 +301,15 @@ public class Game : NetworkBehaviour {
 	// Classic gamemode
 	// Method to set game mode - call this from MenuController
 	public void SetGameMode(bool classic) {
-		// If HOST, set directly
+		// Store the choice locally first
+		localGameModeChoice = classic;
+
+		// If we're the host/server, set it immediately
 		if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsServer) {
 			isClassicMode.Value = classic;
 			Debug.Log("Server set game mode to: " + (classic ? "Classic" : "Chess Kune Do"));
 		}
-		// If CLIENT, request server to set
-		else if (NetworkManager.Singleton != null && NetworkManager.Singleton.IsClient) {
-			RequestSetGameModeServerRpc(classic);
-		}
+		// Clients will verify this after connection in OnClientConnected
 	}
 
 	public bool IsClassicMode() {
@@ -315,6 +350,32 @@ public class Game : NetworkBehaviour {
 			SwitchTurnServerRpc();
 		}
 	}
+
+	private void OnEnable() {
+		whiteWins.OnValueChanged += OnWinCountChanged;
+		blackWins.OnValueChanged += OnWinCountChanged;
+	}
+
+	private void OnDisable() {
+		whiteWins.OnValueChanged -= OnWinCountChanged;
+		blackWins.OnValueChanged -= OnWinCountChanged;
+	}
+
+	// Update display when win count changes
+	private void OnWinCountChanged(int oldValue, int newValue) {
+		UpdateWinCounterDisplay();
+	}
+
+	// Method to update the win counter display
+	private void UpdateWinCounterDisplay() {
+		if (whiteWinsText != null) {
+			whiteWinsText.text = "White: " + whiteWins.Value;
+		}
+		if (blackWinsText != null) {
+			blackWinsText.text = "Black: " + blackWins.Value;
+		}
+	}
+
 
 	// ---	NETWORK ---
 	public void Starthost() {
@@ -458,6 +519,31 @@ public class Game : NetworkBehaviour {
 				NetworkManager.Singleton.Shutdown();
 			}
 
+		}
+	}
+
+	private IEnumerator VerifyGameModeAfterConnection() {
+		// Wait for network variables to sync
+		yield return new WaitForSeconds(0.5f);
+
+		Debug.Log("Client wants: " + (localGameModeChoice ? "Classic" : "Chess Kune Do") +
+				  ", Server has: " + (isClassicMode.Value ? "Classic" : "Chess Kune Do"));
+
+		// Check if our choice matches the server
+		if (localGameModeChoice != isClassicMode.Value) {
+			Debug.LogError("Game mode mismatch! Disconnecting...");
+			Debug.LogError("You selected " + (localGameModeChoice ? "Classic" : "Chess Kune Do") +
+						  " but the host is playing " + (isClassicMode.Value ? "Classic" : "Chess Kune Do"));
+
+			// Disconnect
+			NetworkManager.Singleton.Shutdown();
+
+			// Return to menu
+			if (MenuController.Instance != null) {
+				MenuController.Instance.ShowMainMenuAfterError("Game mode mismatch! Host is playing a different mode.");
+			}
+		} else {
+			Debug.Log("Game modes match! Ready to play.");
 		}
 	}
 

@@ -8,7 +8,7 @@ Library: C:\Users\cesae\Documents\GitHub\YomiChess\Temp\BurstOutput\Data\Plugins
 --dump=Function
 --float-precision=Standard
 --target-framework=NetFramework
---linker-options=PdbAltPath="Chess_variant_TFG_dev_1_Data/Plugins/x86_64/lib_burst_generated.pdb"
+--linker-options=PdbAltPath="Yomi Chess_Data/Plugins/x86_64/lib_burst_generated.pdb"
 --generate-link-xml=Temp\burst.link.xml
 --temp-folder=C:\Users\cesae\Documents\GitHub\YomiChess\Temp\Burst
 --debug=Full
@@ -27,7 +27,7 @@ Library: C:\Users\cesae\Documents\GitHub\YomiChess\Temp\BurstOutput\Data\Plugins
 --dump=Function
 --float-precision=Standard
 --target-framework=NetFramework
---linker-options=PdbAltPath="Chess_variant_TFG_dev_1_Data/Plugins/x86_64/lib_burst_generated.pdb"
+--linker-options=PdbAltPath="Yomi Chess_Data/Plugins/x86_64/lib_burst_generated.pdb"
 --generate-link-xml=Temp\burst.link.xml
 --temp-folder=C:\Users\cesae\Documents\GitHub\YomiChess\Temp\Burst
 --debug=Full
@@ -46,7 +46,7 @@ Library: C:\Users\cesae\Documents\GitHub\YomiChess\Temp\BurstOutput\Data\Plugins
 --dump=Function
 --float-precision=Standard
 --target-framework=NetFramework
---linker-options=PdbAltPath="Chess_variant_TFG_dev_1_Data/Plugins/x86_64/lib_burst_generated.pdb"
+--linker-options=PdbAltPath="Yomi Chess_Data/Plugins/x86_64/lib_burst_generated.pdb"
 --generate-link-xml=Temp\burst.link.xml
 --temp-folder=C:\Users\cesae\Documents\GitHub\YomiChess\Temp\Burst
 --debug=Full
@@ -164,7 +164,7 @@ Library: C:\Users\cesae\Documents\GitHub\YomiChess\Temp\BurstOutput\Data\Plugins
 --dump=Function
 --float-precision=Standard
 --target-framework=NetFramework
---linker-options=PdbAltPath="Chess_variant_TFG_dev_1_Data/Plugins/x86_64/lib_burst_generated.pdb"
+--linker-options=PdbAltPath="Yomi Chess_Data/Plugins/x86_64/lib_burst_generated.pdb"
 --generate-link-xml=Temp\burst.link.xml
 --temp-folder=C:\Users\cesae\Documents\GitHub\YomiChess\Temp\Burst
 --debug=Full
